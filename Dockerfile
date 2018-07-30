@@ -9,7 +9,6 @@ RUN apk add -U -q --no-progress build-base git glide
 
 WORKDIR /gopath/src/github.com/hashwing/prometheus-config
 
-RUN glide up
 RUN go build -v
 
 

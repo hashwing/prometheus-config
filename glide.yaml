@@ -2,6 +2,7 @@ package: github.com/hashwing/prometheus-config
 import:
 - package: github.com/hashwing/log
 - package: github.com/namsral/flag
+  version: ~1.7.4-pre
 - package: k8s.io/api
   subpackages:
   - core/v1
@@ -12,6 +13,7 @@ import:
   - pkg/util/runtime
   - pkg/util/wait
 - package: k8s.io/client-go
+  version: kubernetes-1.9.5
   subpackages:
   - kubernetes
   - tools/cache
