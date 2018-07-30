@@ -7,6 +7,7 @@ ENV GOROOT=/usr/local/go \
 
 RUN apk add -U -q --no-progress build-base git glide
 
+ADD . /gopath/src/github.com/hashwing/prometheus-config
 WORKDIR /gopath/src/github.com/hashwing/prometheus-config
 
 RUN go build -v
