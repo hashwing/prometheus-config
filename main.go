@@ -34,7 +34,8 @@ func main(){
 	log.SetHlogger(logger)
 
 	// get pod number
-	number,err:=strconv.Atoi(strings.Split(*podName,"-")[0])
+	names:=strings.Split(*podName,"-")
+	number,err:=strconv.Atoi(names[len(names)])
 	if err!=nil{
 		log.Error("get pod number error:",err)
 		os.Exit(1)
