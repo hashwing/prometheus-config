@@ -1,6 +1,7 @@
 package prome
 
 import (
+	"path/filepath"
 	"os"
 	"fmt"
 	"io/ioutil"
@@ -47,6 +48,10 @@ type Job struct{
 // CreateConfig create prometheus confgi
 func CreateConfig( c Config)error{
 	tmpl, err := template.New("config").Parse(promConfigTpl)
+	if err != nil {
+		return err
+	}
+	err = os.MkdirAll(filepath.Dir(c.ConfigPath),0666)
 	if err != nil {
 		return err
 	}
