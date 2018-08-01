@@ -35,7 +35,7 @@ func main(){
 
 	// get pod number
 	names:=strings.Split(*podName,"-")
-	number,err:=strconv.Atoi(names[len(names)])
+	number,err:=strconv.Atoi(names[len(names)-1])
 	if err!=nil{
 		log.Error("get pod number error:",err)
 		os.Exit(1)
