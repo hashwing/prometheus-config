@@ -4,6 +4,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	appsv1 "k8s.io/api/apps/v1"
 	"github.com/namsral/flag"
 	"github.com/hashwing/log"
 	"github.com/hashwing/prometheus-config/core/k8s"
@@ -78,16 +79,11 @@ func main(){
 	}
 
 	// watch pods
-	go c.WatchPods(*labelKey,*labelValue,func(n,ns string){
-		r,err:=c.GetStatefulsetReplicas(c.GetOwner(n),ns)
-		if err!=nil{
-			log.Error("get statefulset replicas error:",err)
+	go c.WatchStatefulsets(*labelKey,*labelValue,func(del bool, s *appsv1.StatefulSet){
+		if config.ShardsSum==int(*s.Spec.Replicas){
 			return
 		}
-		if config.ShardsSum==int(r){
-			return
-		}
-		config.ShardsSum=int(r)
+		config.ShardsSum=int(*s.Spec.Replicas)
 		err=prome.CreateConfig(config)
 		if err!=nil{
 			log.Error("write template config file error:",err)

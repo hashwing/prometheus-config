@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashwing/log"
 	apiv1 "k8s.io/api/core/v1"
+	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/apimachinery/pkg/fields"
@@ -15,14 +16,14 @@ import (
 )
 
 
-// WatchPods watch pods change
-func (c *Client)WatchPods(label,value string,cf func(name,namespace string)){
+// WatchStatefulsets watch statfulsets change
+func (c *Client)WatchStatefulsets(label,value string,cf func(del bool,obj *appsv1.StatefulSet)){
 	// Building list watcher
-	statefulsetsListWatcher:=cache.NewListWatchFromClient(c.cset.CoreV1().RESTClient(),"pods",apiv1.NamespaceAll,fields.Everything())
+	statefulsetsListWatcher:=cache.NewListWatchFromClient(c.cset.AppsV1().RESTClient(),"statefulsets",apiv1.NamespaceAll,fields.Everything())
 	log.Debug("Building queue")
 	// Building queue
 	queue := workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter())
-	indexer, informer := cache.NewIndexerInformer(statefulsetsListWatcher,&apiv1.Pod{},0,cache.ResourceEventHandlerFuncs{
+	indexer, informer := cache.NewIndexerInformer(statefulsetsListWatcher,&appsv1.StatefulSet{},0,cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			key, err := cache.MetaNamespaceKeyFunc(obj)
 			if err == nil {
@@ -62,26 +63,24 @@ func (c *Client)WatchPods(label,value string,cf func(name,namespace string)){
 	}
 
 	// pods save all pods
-	pods:=make(map[string]string)
+	statfulsets:=make(map[string]*appsv1.StatefulSet)
 
 	callfunc :=func(del bool,item interface{}){
 		if del{
 			key :=item.(string)
 			log.Debug("Pod", key,"does not exist anymore")
-			ns:=pods[key]
-			if ns!=""{
-				delete(pods,key)
-				cf(key,ns)
+			s:=statfulsets[key]
+			if s!=nil{
+				delete(statfulsets,key)
+				cf(true,s)
 			}
 			return
 		}
-		pod,ok:=item.(*apiv1.Pod)
+		statefulset,ok:=item.(*appsv1.StatefulSet)
 		if ok{
-			if pod.GetLabels()[label]==value{
-				log.Debug("owner",pod.ObjectMeta.OwnerReferences[0].Name)
-				pods[pod.GetName()]=pod.GetNamespace()
-				log.Debug("Pod",pod.ObjectMeta.OwnerReferences[0].Name,"update or add")
-				cf(pod.GetName(),pod.GetNamespace())	
+			if statefulset.GetLabels()[label]==value{
+				statfulsets[statefulset.GetName()]=statefulset
+				cf(false,statefulset)	
 			}
 		}
 	}
