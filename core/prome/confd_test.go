@@ -16,7 +16,7 @@ func Test_CreateConfig(t *testing.T){
 		Cadvisor:true,
 	}
 	c:=prome.Config{
-		ConfigPath:"./config_test.yml",
+		ConfigPath:"./prometheus.yml",
 		RulesPath:"/etc/prometheus/rules/*.yml",
 		ScrapeInterval:"1m",
 		ScrapeTimeout:"10s",
@@ -31,6 +31,10 @@ func Test_CreateConfig(t *testing.T){
 		ShardsSum:3,
 	}
 	err:=prome.CreateConfig(c)
+	// if err!=nil{
+	// 	t.Error(err)
+	// }
+	// err:=prome.GetTemplate("../../prometheus.yml",&c)
 	if err!=nil{
 		t.Error(err)
 	}

@@ -1,30 +1,50 @@
 package prome
 
+import (
+  "os"
+  "text/template"
+  "github.com/hashwing/log"
+)
+
+// GetTemplate ...
+func GetTemplate(path string,c *Config)error{
+    tmpl,err:=template.ParseFiles(path)
+    if err!=nil{
+      log.Error(err)
+      return err
+    }
+    fd, err := os.OpenFile(c.ConfigPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0664)
+    if err != nil {
+      return err
+    }
+    err = tmpl.Execute(fd, c)
+    if err != nil {
+      return err
+    }
+    return nil
+}
 var promConfigTpl = `
 global:
   ## How frequently to scrape targets by default
-  ##
   scrape_interval: {{ .ScrapeInterval }}
   ## How long until a scrape request times out
-  ##
   scrape_timeout: {{ .ScrapeTimeout }}
   ## How frequently to evaluate rules
-  ##
   evaluation_interval: {{ .EvaluationInterval }}
 
 rule_files:
   - {{ .RulesPath }}
 
-{{ if ne .RemoteR "" }}
+{{- if ne .RemoteR "" }}
 remote_read:
   - url: '{{ .RemoteR }}'
-{{ end }}
-{{ if ne .RemoteW "" }}
+{{- end }}
+{{- if ne .RemoteW "" }}
 remote_write:
   - url: '{{ .RemoteW }}'
-{{ end }}
+{{- end }}
 
-{{ if .AlertManager }}
+{{- if .AlertManager }}
 alerting:
   alertmanagers:
   - kubernetes_sd_configs:
@@ -39,20 +59,20 @@ alerting:
     - source_labels: [__meta_kubernetes_pod_container_port_number]
       regex:
       action: drop
-{{ end }}
+{{- end }}
 
 scrape_configs:
 
 ## prometheus local
-{{ if .Job.Local }}
+{{- if .Job.Local }}
   - job_name: prometheus
     static_configs:
       - targets:
         - localhost:9090
-{{ end }}
+{{- end }}
 
 ## Scrape config for service endpoints.
-{{ if .Job.Endpoints }}
+{{- if .Job.Endpoints }}
   - job_name: 'kubernetes-service-endpoints'
 
     kubernetes_sd_configs:
@@ -90,10 +110,10 @@ scrape_configs:
       - source_labels: [__tmp_hash]
         regex:         ^{{ .ShardsNum }}$  # This is the slave number
         action:        keep
-{{ end }}
+{{- end }}
 
 ## pushgateway
-{{ if .Job.PushGateway }}
+{{- if .Job.PushGateway }}
   - job_name: 'prometheus-pushgateway'
     honor_labels: true
 
@@ -104,7 +124,7 @@ scrape_configs:
       - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_probe]
         action: keep
         regex: pushgateway
-{{ end }}
+{{- end }}
 
 ## kubernetes-services'
 {{ if .Job.Service }}
@@ -140,10 +160,10 @@ scrape_configs:
       - source_labels: [__tmp_hash]
         regex:         ^{{ .ShardsNum }}$  # This is the slave number
         action:        keep
-{{ end }}
+{{- end }}
 
 ## Pod
-{{ if .Job.Pod }}
+{{- if .Job.Pod }}
   - job_name: 'kubernetes-pods'
     kubernetes_sd_configs:
       - role: pod
@@ -175,35 +195,35 @@ scrape_configs:
         action:        hashmod
       - source_labels: [__tmp_hash]
         regex:         ^{{ .ShardsNum }}$  # This is the slave number
-		action:        keep
-{{ end }}
+        action:        keep
+{{- end }}
 
 ## ApiServer
-{{ if .Job.ApiServers }}
+{{- if .Job.ApiServers }}
   - job_name: 'kubernetes-apiservers'
-	kubernetes_sd_configs:
-		- role: endpoints
-	scheme: https
-	tls_config:
-		ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-		insecure_skip_verify: true
-	bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+    kubernetes_sd_configs:
+    - role: endpoints
+    scheme: https
+    tls_config:
+      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+      insecure_skip_verify: true
+    bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
 
-	relabel_configs:
-		- source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
-		action: keep
-		regex: default;kubernetes;https
-		- source_labels: [__address__]
-      modulus:       {{ .ShardsSum }}    # sum slaves
-      target_label:  __tmp_hash
-      action:        hashmod
-    - source_labels: [__tmp_hash]
-      regex:         ^{{ .ShardsNum }}$  # This is the slave number
-      action:        keep
-{{ end }}
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+        action: keep
+        regex: default;kubernetes;https
+      - source_labels: [__address__]
+        modulus:       {{ .ShardsSum }}    # sum slaves
+        target_label:  __tmp_hash
+        action:        hashmod
+      - source_labels: [__tmp_hash]
+        regex:         ^{{ .ShardsNum }}$  # This is the slave number
+        action:        keep
+{{- end }}
 
 ## Node
-{{ if .Job.Node }}
+{{- if .Job.Node }}
   - job_name: 'kubernetes-nodes'
     scheme: https
     tls_config:
@@ -228,10 +248,10 @@ scrape_configs:
       - source_labels: [__tmp_hash]
         regex:         ^{{ .ShardsNum }}$  # This is the slave number
         action:        keep
-{{ end }}
+{{- end }}
 
 ## Cadvisor
-{{ if .Job.Cadvisor }}
+{{- if .Job.Cadvisor }}
   - job_name: 'kubernetes-nodes-cadvisor'
     scheme: https
     tls_config:
@@ -257,6 +277,5 @@ scrape_configs:
       - source_labels: [__tmp_hash]
         regex:         ^{{ .ShardsNum }}$  # This is the slave number
         action:        keep
-{{ end }}
-
+{{- end }}
 `
